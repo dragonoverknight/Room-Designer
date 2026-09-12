@@ -16,7 +16,7 @@ class Floor extends graphics.Group {
     constructor(width, depth) {
         super();
         const floorGeometry = new graphics.PlaneGeometry(100, 100);
-        const floorMaterial = new graphics.MeshBasicMaterial({ color: 0x808080});
+        const floorMaterial = new graphics.MeshBasicMaterial({ color: 0x808080, side: graphics.DoubleSide});
         const floor = new graphics.Mesh(floorGeometry, floorMaterial);
         floor.rotation.x = -Math.PI / 2;
         this.add(floor);
@@ -34,11 +34,75 @@ class Wall extends graphics.Group {
         this.add(wall);
     }
 }
+// adds raycaster
+
+const ray = new graphics.Raycaster();
+const mouse = new graphics.Vector2();
+const wallSegments = [];
+let points = [];
+let temp = null;
+
+function getIntersection(event) {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    ray.setFromCamera(mouse, camera);
+
+    const floor = scene.children.find(child => child instanceof Floor);
+    if (!floor) return null;
+
+    const intersects = ray.intersectObjects(floor.children);
+
+    if (intersects.length > 0) {
+        const point = intersects[0].point;
+        point.x = Math.round(point.x);
+        point.z = Math.round(point.z);
+        point.y = 0;
+        return point
+    }
+
+    return null;
+}
+
+function onMove(event) {
+    const point = getIntersection(event);
+    if (point && points.length > 0) {
+        if (temp) scene.remove(temp);
+        const geometry = new graphics.BufferGeometry().setFromPoints([points[points.length - 1], point]);
+        const material = new graphics.LineBasicMaterial({ color: 0x808080});
+        temp = new graphics.Line(geometry, material);
+        scene.add(temp)
+    }
+}
+
+function onDown(event) {
+    if (event.button !== 0) return;
+    const point = getIntersection(event);
+    if (point) {
+        points.push(point);
+        if (points.length > 1) {
+            const start = points[points.length - 2];
+            const end = points[points.length - 1];
+            const length = start.distanceTo(end);
+
+            const newWall = new Wall(length, 5, 1);
+            newWall.position.copy(start);
+            newWall.rotation.y = Math.atan2(end.z - start.z, end.x - start.x);
+            scene.add(newWall);
+            wallSegments.push(newWall);
+        }
+    }
+}
 
 // add components to the scene
 
 scene.add(new Floor(100, 100));
 scene.add(new Wall(10, 5, 1));
+
+// mouse listeners for customizing map
+
+window.addEventListener('mousemove', onMove);
+window.addEventListener('mousedown', onDown);
 
 // keystroke listeners for opening the menu and catalogue
 
