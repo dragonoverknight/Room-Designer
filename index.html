@@ -1,0 +1,49 @@
+<!-- Basic script control -->
+<!DOCTYPE html>
+<html>
+<head>
+
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';">
+  
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./node_modules/three/build/three.module.js"
+        }
+      }
+    </script>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+    <script type="module" src="renderer.js"></script>
+
+    <div id="main-menu" class="hidden">
+      <h2>Room Settings</h2>
+      <div class="vertical-menu">
+        <label>Room Width <input type="number" id="room-width" value="120"></label>
+        <label>Room Height <input type="number" id="room-height" value="80"></label>
+        <label>Room Depth <input type="number" id="room-depth" value="100"></label>
+      </div>
+      <button id="update-room">Apply Size</button>
+      <p>Press 'm' to close</p>
+    </div>
+
+
+    <div id="catalogue" class="hidden">
+      <h2>Furniture Catalogue</h2>
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="Search furniture...">
+        <button id="search-button">Search</button>
+      </div>
+      <div id="furniture-list">
+        <div class="furniture-item">Chair<br><span>$99.99</span></div>
+        <div class="furniture-item">Table<br><span>$199.99</span></div>
+        <div class="furniture-item">Sofa<br><span>$299.99</span></div>
+      </div>
+
+      <p><small>Press 'i' to close</small></p>
+    </div>
+</body>
+</html>
