@@ -1,4 +1,5 @@
 import * as graphics from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 // Create a scene, camera, and renderer
 
@@ -10,6 +11,11 @@ camera.lookAt(0, 0, 0);
 const renderer = new graphics.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
+
+const viewer = new OrbitControls(camera, renderer.domElement);
+viewer.enableDamping = true;
+viewer.dampingFactor = .05;
+viewer.maxPolarAngle = Math.PI / 2 - .05
 
 // create new components for the scene
 class Floor extends graphics.Group {
@@ -30,10 +36,23 @@ class Wall extends graphics.Group {
         const wallMaterial = new graphics.MeshBasicMaterial({ color: 0x00ff00 });
         const wall = new graphics.Mesh(wallGeometry, wallMaterial);
 
-        wall.position.set(width / 2, height / 2, 0);
+        wall.position.set(widht / 2, height / 2, 0);
         this.add(wall);
     }
 }
+
+class Furniture extends graphics.Group {
+    constructor(width, height, depth) {
+        super();
+        const componentGeometry = new graphics.BoxGeometry(width, height, depth);
+        const componentMaterial = new graphics.MeshBasicMaterial({ color: 0x00ff00 });
+        const component = new graphics.Mesh(componentGeometry, componentMaterial);
+
+        component.position.set(width / 2, height / 2, 0);
+        this.add(component);
+    }
+}
+
 // adds raycaster
 
 const ray = new graphics.Raycaster();
@@ -85,26 +104,48 @@ function onDown(event) {
             const end = points[points.length - 1];
             const length = start.distanceTo(end);
 
-            const newWall = new Wall(length, 5, 1);
-            newWall.position.copy(start);
-            newWall.rotation.y = Math.atan2(end.z - start.z, end.x - start.x);
-            scene.add(newWall);
-            wallSegments.push(newWall);
+            const block = new Furniture(length, 5, 1);
+            block.position.copy(start);
+            block.rotation.y = Math.atan2(end.z - start.z, end.x - start.x);
+            scene.add(block);
+            wallSegments.push(block);
         }
     }
 }
 
-// add components to the scene
+// add 3D components
 
 scene.add(new Floor(100, 100));
-scene.add(new Wall(10, 5, 1));
+
+// button listeners
+
+let placementButton = document.getElementById('add-furniture-button');
+let place = false;
+placementButton.addEventListener('click', (event) => {
+    place = !place;
+});
+
+let refocusButton = document.getElementById('refocus-button');
+refocusButton.addEventListener('click', (event) => {
+    viewer.target.set(0, 0, 0,);
+    camera.position.set(0, 5, 10);
+});
 
 // mouse listeners for customizing map
 
-window.addEventListener('mousemove', onMove);
-window.addEventListener('mousedown', onDown);
+window.addEventListener('mousemove', (event) => {
+    if (place) {
+        onMove(event)
+    }}
+);
+window.addEventListener('mousedown', (event) => {
+        if (place) {
+            onDown(event)
+        }
+    }
+);
 
-// keystroke listeners for opening the menu and catalogue
+// keystroke listeners for UI components
 
 const menu = document.getElementById('main-menu');
 const catalogue = document.getElementById('catalogue');
@@ -116,6 +157,43 @@ window.addEventListener('keydown', (event) => {
         catalogue.classList.toggle('hidden');
     }
 }); 
+
+// keystroke listeners for camera
+
+const forward = new graphics.Vector3();
+const sideways = new graphics.Vector3();
+const movement = new graphics.Vector3();
+
+window.addEventListener('keydown', (event) => {
+    const speed = .5;
+
+    camera.getWorldDirection(forward);
+
+    forward.y = 0;
+    forward.normalize();
+
+    sideways.crossVectors(forward, camera.up).normalize();
+
+    movement.set(0, 0, 0);
+
+    switch (event.key) {
+        case 'w': case 'W':
+            movement.addScaledVector(forward, speed);
+            break;
+        case 's': case 'S':
+            movement.addScaledVector(forward, -speed);
+            break;
+        case 'a': case 'A':
+            movement.addScaledVector(sideways, -speed);
+            break;
+        case 'd': case 'D':
+            movement.addScaledVector(sideways, speed);
+            break;
+    }
+
+    camera.position.add(movement); viewer.target.add(movement);
+    viewer.update();
+});
 
 // menu inputs affect room size
 
@@ -134,12 +212,13 @@ window.addEventListener('click', () => {
     });
 
     console.log(`Room size updated to: ${width} x ${height} x ${depth}`);
-})
+});
 
 // begin the animation
 
 function animate() {
     requestAnimationFrame(animate);
+    viewer.update();
     renderer.render(scene, camera);
 }
 animate();

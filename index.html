@@ -8,7 +8,8 @@
     <script type="importmap">
       {
         "imports": {
-          "three": "./node_modules/three/build/three.module.js"
+          "three": "./node_modules/three/build/three.module.js",
+          "three/examples/jsm/": "./node_modules/three/examples/jsm/"
         }
       }
     </script>
@@ -26,7 +27,8 @@
         <label>Room Height <input type="number" id="room-height" value="80"></label>
         <label>Room Depth <input type="number" id="room-depth" value="100"></label>
       </div>
-      <button id="update-room">Apply Size</button>
+      <button id="add-furniture-button">Add Components</button>
+      <button id="refocus-button">Refocus Camera</button>
       <p>Press 'm' to close</p>
     </div>
 
