@@ -1,7 +1,7 @@
 import * as graphics from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-// Create a scene, camera, and renderer
+// Create a scene, camera, grid, and renderer
 
 const scene = new graphics.Scene();
 const camera = new graphics.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -15,7 +15,11 @@ document.body.appendChild(renderer.domElement);
 const viewer = new OrbitControls(camera, renderer.domElement);
 viewer.enableDamping = true;
 viewer.dampingFactor = .05;
-viewer.maxPolarAngle = Math.PI / 2 - .05
+viewer.maxPolarAngle = Math.PI / 2 - .05;
+
+const grid = new graphics.GridHelper(100, 100, 0x000000, 0x525252);
+grid.position.y = 0.1;
+scene.add(grid);
 
 // create new components for the scene
 class Floor extends graphics.Group {
@@ -62,6 +66,8 @@ let points = [];
 let temp = null;
 
 function getIntersection(event) {
+    const step = 4;
+
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
@@ -74,10 +80,10 @@ function getIntersection(event) {
 
     if (intersects.length > 0) {
         const point = intersects[0].point;
-        point.x = Math.round(point.x);
-        point.z = Math.round(point.z);
+        point.x = Math.round(point.x / step) * step;
+        point.z = Math.round(point.z / step) * step;
         point.y = 0;
-        return point
+        return point;
     }
 
     return null;
@@ -90,7 +96,7 @@ function onMove(event) {
         const geometry = new graphics.BufferGeometry().setFromPoints([points[points.length - 1], point]);
         const material = new graphics.LineBasicMaterial({ color: 0x808080});
         temp = new graphics.Line(geometry, material);
-        scene.add(temp)
+        scene.add(temp);
     }
 }
 
@@ -131,16 +137,25 @@ refocusButton.addEventListener('click', (event) => {
     camera.position.set(0, 5, 10);
 });
 
+let clearButton = document.getElementById('clear-button');
+clearButton.addEventListener('click', () => {
+    const removables = scene.children.filter(child => child instanceof Furniture);
+
+    removables.forEach(child => {
+        scene.remove(child);
+    })
+});
+
 // mouse listeners for customizing map
 
 window.addEventListener('mousemove', (event) => {
     if (place) {
-        onMove(event)
+        onMove(event);
     }}
 );
 window.addEventListener('mousedown', (event) => {
         if (place) {
-            onDown(event)
+            onDown(event);
         }
     }
 );
