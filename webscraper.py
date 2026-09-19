@@ -8,7 +8,37 @@ headers_req = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
 furniture_urls = {} 
 furniture = [] 
 category_urls = ['https://www.ikea.com/us/en/cat/kitchen-base-cabinets-24254/', 
-                 'https://www.ikea.com/us/en/cat/storage-organization-st001/'] 
+                 'https://www.ikea.com/us/en/cat/wall-cabinets-23607/',
+                 'https://www.ikea.com/us/en/cat/high-cabinets-23608/',
+                 'https://www.ikea.com/us/en/cat/kitchen-islands-carts-10471/',
+                 'https://www.ikea.com/us/en/cat/storage-organization-st001/',
+                 'https://www.ikea.com/us/en/cat/sofas-sectionals-fu003/',
+                 'https://www.ikea.com/us/en/cat/coffee-side-tables-10705/',
+                 'https://www.ikea.com/us/en/cat/tv-media-furniture-10475/',
+                 'https://www.ikea.com/us/en/cat/beds-bm003/',
+                 'https://www.ikea.com/us/en/cat/wardrobes-19053/',
+                 'https://www.ikea.com/us/en/cat/chest-of-drawers-10451/',
+                 'https://www.ikea.com/us/en/cat/nightstands-20454/',
+                 'https://www.ikea.com/us/en/cat/appliances-10471/',
+                 'https://www.ikea.com/us/en/cat/lighting-li001/',
+                 'https://www.ikea.com/us/en/cat/rugs-10653/',
+                 'https://www.ikea.com/us/en/cat/dining-tables-21825/',
+                 'https://www.ikea.com/us/en/cat/dining-chairs-25219/',
+                 'https://www.ikea.com/us/en/cat/desks-computer-desks-20649/'] 
+
+def nums(n):
+    n = n.strip()
+    if '/' in n:
+        parts = n.split()
+        if len(parts) == 2:
+            whole, frac = parts
+            num, denom = frac.split('/')
+            return float(whole) + float(num) / float(denom)
+        elif len(parts) == 1:
+            num, denom = parts[0].split('/')
+            return float(num) / float(denom)
+    n = float(n)
+    return int(n) if n.is_integer() else n
 
 def extract(soup, category, url):
     page = soup.get_text()
@@ -16,43 +46,38 @@ def extract(soup, category, url):
     title = soup.find('h1')
     name = title.text.strip().replace('\n', ' ').replace('"', ' ') if title else 'N/A'
 
-    color = re.search(r'color:\s*([\w\s-]+)', page, re.IGNORECASE)
-    color = color.group(1).strip() if color else 'white'
+    dim = r'(\d+(?:\s+\d+/\d+|\.\d+)?)\s*x\s*(\d+(?:\s+\d+/\d+|\.\d+)?)\s*x\s*(\d+(?:\s+\d+/\d+|\.\d+)?)'
+    dimTitle = re.search(dim, name, re.IGNORECASE)
 
-    boxes = soup.find_all('div', class_=re.compile(r'pip-product-dimensions__measurement', re.I))
+    if dimTitle:
+        width = nums(dimTitle.group(1))
+        depth = nums(dimTitle.group(2))
+        height = nums(dimTitle.group(3))
 
-    extracted = []
-
-    if boxes:
-        for box in boxes:
-            btext = box.get_text()
-            width = re.search(r'width:\s*([\d\.\/\s]+)', btext, re.IGNORECASE)
-            depth = re.search(r'depth:\s*([\d\.\/\s]+)', btext, re.IGNORECASE)
-            height = re.search(r'height:\s*([\d\.\/\s]+)', btext, re.IGNORECASE)
-
-            width = width.group(1).strip() if width else '30'
-            depth = depth.group(1).strip() if depth else '24'
-            height = height.group(1).strip() if height else '34.5'
-
-            extracted.append({
-                'name': name,
-                'color': color,
-                'width': width,
-                'depth': depth,
-                'height': height,
-                'category': category,
-                'url': url
-            })
+        name = re.sub(dim, '', name, flags=re.IGNORECASE).strip(' ,')
     else:
         width = re.search(r'width:\s*([\d\.\/\s]+)', page, re.IGNORECASE)
         depth = re.search(r'depth:\s*([\d\.\/\s]+)', page, re.IGNORECASE)
         height = re.search(r'height:\s*([\d\.\/\s]+)', page, re.IGNORECASE)
 
-        width = width.group(1).strip() if width else '30'
-        depth = depth.group(1).strip() if depth else '24'
-        height = height.group(1).strip() if height else '34.5'
+        width = nums(width.group(1)) if width else 30
+        depth = nums(depth.group(1)) if depth else 24
+        height = nums(height.group(1)) if height else 34.5
 
-        extracted.append({
+    if ',' in name:
+        parts = name.rsplit(',', 1)
+        name = parts[0].strip()
+        color = parts[1].strip().title()
+    else:
+        color = re.search(r'color:\s*([\w\s/-]{2,20})', page, re.IGNORECASE)
+        color = color.group(1).strip().title() if color else 'White'
+
+    if any(x in color.lower() for x in ['choose', 'size', 'front', 'how to']): 
+        color = "white" 
+    elif any(char.isdigit() for char in color):
+        return []
+
+    return ([{
             'name': name,
             'color': color,
             'width': width,
@@ -60,9 +85,7 @@ def extract(soup, category, url):
             'height': height,
             'category': category,
             'url': url
-        })
-
-    return extracted
+            }])
 
 for url in category_urls: 
     try:
